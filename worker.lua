@@ -22,47 +22,45 @@ function deep_copy(obj, tab)
 end
 
 local function process(old_objects, from, to)
-  local new_objects = {}
-  for i = from, to do
+  -- local new_objects = {}
+  for obj in pairs(world.objects) do
     -- print("worker", args[1], "processing", i)
-    local obj = old_objects[i]
     obj.memory = setmetatable(obj.memory, {__index = memory})
     local action = actions[gene(obj.memory, obj.memory.p)]
     if action then
-      action(obj)
       obj.memory.count = 0
+      action(obj)
     else
       obj.memory.p = obj.memory.p + 1
     end
     if obj.memory:size() < obj.memory.p then
       obj.memory.p = obj.memory.p % obj.memory:size() + 1
     end
-    world.insert({objects = new_objects}, obj)
+    -- world.insert({objects = new_objects}, obj)
   end
-  world.objects = new_objects
+  -- world.objects = new_objects
 
   -- print("worker", args[1], "finished")
 
-  for i = #new_objects, 1, -1  do
-    local obj = new_objects[i]
+  for obj in pairs(world.objects)  do
+    --if math.floor(world.h/10)<obj.y and obj.y<math.floor(world.h*19/20) then
     obj.energy = obj.energy - world.energy.degradation
+    --end
     obj.energy = obj.energy + (1 - world.heat.depth_degradation) ^ (world.h - obj.y) * world.heat.power
     if obj.energy <= 0 then
-      table.remove(new_objects, i)
+      world:death(obj)
     end
   end
 
-  for i = #new_objects, 1, -1  do
-    local obj = new_objects[i]
+  for obj in pairs(world.objects)  do
     if world:empty(obj.x, obj.y + 1) and obj.y < world.h and math.random() < 0.1 then
       obj.y = obj.y + 1
     end
   end
 
-  for i = #new_objects, 1, -1 do
-    local obj = new_objects[i]
+  for obj in pairs(world.objects) do
     if world.energy.limit <= obj.energy then
-      table.remove(new_objects, i)
+      world:death(obj)
       local free_cells = {}
       for _, dir in ipairs(directions) do
         if 1 <= obj.x + dir[1] and obj.x + dir[1] <= world.w
@@ -112,11 +110,40 @@ local function process(old_objects, from, to)
 
         world:insert(child1)
         world:insert(child2)
+      else
+        local obj_give_energy = obj.energy/8
+        local obj_l_u, obj_c_u, obj_r_u = world:find(obj.x-1,obj.y+1), world:find(obj.x, obj.y+1), world:find(obj.x+1, obj.y+1)
+        local obj_l_c, obj_r_c = world:find(obj.x-1,obj.y), world:find(obj.x+1, obj.y)
+        local obj_l_d, obj_c_d, obj_r_d = world:find(obj.x-1,obj.y-1), world:find(obj.x, obj.y-1), world:find(obj.x+1, obj.y-1)
+        if obj_l_u then
+          obj_l_u.energy = obj_l_u.energy+ obj_give_energy
+        end
+        if obj_c_u then
+          obj_c_u.energy = obj_c_u.energy+ obj_give_energy
+        end
+        if obj_r_u then
+          obj_r_u.energy = obj_r_u.energy+ obj_give_energy
+        end
+        if obj_l_c then
+          obj_l_c.energy = obj_l_c.energy+ obj_give_energy
+        end
+        if obj_r_c then
+          obj_r_c.energy = obj_r_c.energy+ obj_give_energy
+        end
+        if obj_r_d then
+          obj_r_d.energy = obj_r_d.energy+ obj_give_energy
+        end
+        if obj_c_d then
+          obj_c_d.energy = obj_c_d.energy+ obj_give_energy
+        end
+        if obj_l_d then
+          obj_l_d.energy = obj_l_d.energy+ obj_give_energy
+        end
       end
       -- world.objects:sort()
     end
   end
-  return new_objects
+  return old_objects
 end
 
 local args = {...}
