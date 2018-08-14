@@ -10,21 +10,16 @@ function deep_copy(obj, tab)
   if type(obj) == 'table' then
     local result = {}
     for k,v in pairs(obj) do
-      --print(tab, k, '= {')
       result[k] = deep_copy(v, tab .. '\t')
-      --print(tab, '}')
     end
     return result
   else
-    --print(tab, obj)
     return obj
   end
 end
 
-local function process(old_objects, from, to)
-  -- local new_objects = {}
+local function process()
   for obj in pairs(world.objects) do
-    -- print("worker", args[1], "processing", i)
     obj.memory = setmetatable(obj.memory, {__index = memory})
     local action = actions[gene(obj.memory, obj.memory.p)]
     if action then
@@ -36,16 +31,10 @@ local function process(old_objects, from, to)
     if obj.memory:size() < obj.memory.p then
       obj.memory.p = obj.memory.p % obj.memory:size() + 1
     end
-    -- world.insert({objects = new_objects}, obj)
   end
-  -- world.objects = new_objects
-
-  -- print("worker", args[1], "finished")
 
   for obj in pairs(world.objects)  do
-    --if math.floor(world.h/10)<obj.y and obj.y<math.floor(world.h*19/20) then
     obj.energy = obj.energy - world.energy.degradation
-    --end
     obj.energy = obj.energy + (1 - world.heat.depth_degradation) ^ (world.h - obj.y) * world.heat.power
     if obj.energy <= 0 then
       world:death(obj)
@@ -54,7 +43,7 @@ local function process(old_objects, from, to)
 
   for obj in pairs(world.objects)  do
     if world:empty(obj.x, obj.y + 1) and obj.y < world.h and math.random() < 0.1 then
-      obj.y = obj.y + 1
+      world:move(obj, obj.x, obj.y + 1)
     end
   end
 
@@ -90,9 +79,6 @@ local function process(old_objects, from, to)
 
         child1.memory = obj.memory:copy()
         child2.memory = obj.memory:copy()
-
-        -- child1.name = child1.name .. "_child1"
-        -- child2.name = child2.name .. "_child2"
 
         for i = 1, child1.memory:size() do
           if i == math.random(world.logic_values) then
@@ -140,29 +126,8 @@ local function process(old_objects, from, to)
           obj_l_d.energy = obj_l_d.energy+ obj_give_energy
         end
       end
-      -- world.objects:sort()
     end
   end
-  return old_objects
 end
 
-local args = {...}
-if not tonumber(args[1]) then return process end
-
--- print("ready", args[1])
-function love.threaderror(thread, errorstr)
-  print("Thread error!\n"..errorstr)
-end
-
-local channel = love.thread.getChannel("init"):demand()
-
-while true do
-
-  local old_objects = channel:demand()
-  local from, to = channel:demand(), channel:demand()
-
-  -- print("worker", args[1], "got", from ,to)
-
-  channel:supply(process(old_objects, from, to))
-
-end
+return process

@@ -18,6 +18,7 @@ local world = {
   w = 250,
   h = 100,
   objects = {},
+  object_count = 0,
   move = function(self,creature, x, y)
     self.size[x][y], self.size[creature.x][creature.y] = creature, nil
     creature.x, creature.y= x, y
@@ -25,23 +26,18 @@ local world = {
   death = function (self, obj)
     self.size[obj.x][obj.y] = nil
     self.objects[obj]=nil
+    self.object_count = self.object_count - 1
   end,
   find = function(self, x, y)
-    -- assert(self.size[x], tostring(x) )
-    -- assert(self.size[x][y], (tostring(self.size[x][y])..tostring(type(x))..' '..tostring(type(y))))
     return self.size[x] and self.size[x][y]
   end,
   empty = function(self, x, y)
     return self:find(x, y) == nil
   end,
   insert = function(self, obj)
-    -- assert(obj.x, 'obj.x is nil')
-    -- assert(obj.y, 'obj.y is nil')
-    -- assert(self.size, 'self.size is nil')
-    -- assert(self.size[math.floor(obj.x)],(tostring(self.size[obj.x])..type(obj.x)..tostring(obj.x)))
-    -- assert(self.size[math.floor(obj.x)][math.floor(obj.y)], (tostring(self.size[obj.x][obj.y])..tostring(type(obj.x))..' '..tostring(type(obj.y))))
     self.size[obj.x][obj.y]=obj
     self.objects[obj] = obj
+    self.object_count = self.object_count + 1
   end,
   sun = {
     power = 15,
@@ -88,8 +84,7 @@ actions = {
 
     if not world:empty(next.x, next.y) then return end
 
-    creature.x = next.x
-    creature.y = next.y
+    world:move(creature, next.x, next.y)
   end,
   [math.floor(world.logic_values * 3 / 4)] = function(creature) -- проверить занятость клетки
     if 64 < creature.memory.count then
@@ -150,40 +145,6 @@ actions = {
       creature.memory.p=creature.memory.p+1
     end
   end,
-  -- [math.floor(world.logic_values * 7 / 8)] = function(obj) -- деление
-  --   if obj.energy>512 then
-  --     local free_cells = {}
-  --     for _, dir in ipairs(directions) do
-  --       if 1 <= obj.x + dir[1] and obj.x + dir[1] <= world.w
-  --       and 1 <= obj.y + dir[2] and obj.y + dir[2] <= world.h then
-  --         if world:empty(obj.x + dir[1], obj.y + dir[2]) then
-  --           table.insert(free_cells, {obj.x + dir[1], obj.y + dir[2]})
-  --         end
-  --       end
-  --     end
-  --     if 1 <= #free_cells then
-  --       local child1 = deep_copy(obj)
-  --       child1.energy = obj.energy / 8
-  --       obj.energy=obj.energy-obj.energy*7/8
-  --       local idx1 = math.random(#free_cells)
-  --       local pos1 = free_cells[idx1]
-  --       table.remove(free_cells, idx1)
-  --
-  --       child1.x = pos1[1]
-  --       child1.y = pos1[2]
-  --
-  --       child1.memory = obj.memory:copy()
-  --       for i = 1, child1.memory:size() do
-  --         if i == math.random(world.logic_values) then
-  --           child1.memory:set(i, math.random(world.logic_values))
-  --           break
-  --         end
-  --       end
-  --       world:insert(child1)
-  --     end
-  --   end
-  --   obj.memory.p=obj.memory.p+1
-  -- end,
   [math.floor(world.logic_values * 5 / 8)] = function(obj) -- отдать энергию
     local obj_give_energy = obj.energy/16
     local obj_l_u, obj_c_u, obj_r_u = world:find(obj.x-1,obj.y+1), world:find(obj.x, obj.y+1), world:find(obj.x+1, obj.y+1)
@@ -223,36 +184,6 @@ actions = {
     end
     obj.memory.p=obj.memory.p+1
   end,
-  -- [math.floor(world.logic_values * 3 / 8)] = function(creature) -- сравнить две последовательности
-  --   creature.memory.count = creature.memory.count or 0
-  --   if 64 < creature.memory.count then
-  --     creature.memory.p = creature.memory.p + 1
-  --     return
-  --   end
-  --   local len = gene(creature.memory, creature.memory.p + 1)
-  --   local data1 = gene(creature.memory, creature.memory.p + 2)
-  --   local data2 = gene(creature.memory, creature.memory.p + 3)
-  --   local jump_true = gene(creature.memory, creature.memory.p + 2)
-  --   local jump_false = gene(creature.memory, creature.memory.p + 2)
-  --
-  --   local equals = true
-  --   for i = 1, len do
-  --     if gene(creature.memory, data1 + i) ~= gene(creature.memory, data2 + i) then
-  --       equals = false
-  --       break
-  --     end
-  --   end
-  --
-  --   if equals then
-  --     creature.memory.p = creature.memory.p + jump_true
-  --   else
-  --     creature.memory.p = creature.memory.p + jump_false
-  --   end
-  --
-  --   creature.memory.count = creature.memory.count + 1
-  --   local action = actions[gene(creature.memory, creature.memory.p)]
-  --   if action then action(creature) end
-  -- end,
 }
 
 photosyntesis = function(self)
