@@ -18,7 +18,7 @@ function deep_copy(obj, tab)
   end
 end
 
-local function process()
+local function action_creature(obj)
   for obj in pairs(world.objects) do
     obj.memory = setmetatable(obj.memory, {__index = memory})
     local action = actions[gene(obj.memory, obj.memory.p)]
@@ -32,7 +32,9 @@ local function process()
       obj.memory.p = obj.memory.p % obj.memory:size() + 1
     end
   end
+end
 
+local function change_energy(obj)
   for obj in pairs(world.objects)  do
     obj.energy = obj.energy - world.energy.degradation
     obj.energy = obj.energy + (1 - world.heat.depth_degradation) ^ (world.h - obj.y) * world.heat.power
@@ -40,13 +42,17 @@ local function process()
       world:death(obj)
     end
   end
+end
 
+local function drop()
   for obj in pairs(world.objects)  do
     if world:empty(obj.x, obj.y + 1) and obj.y < world.h and math.random() < 0.1 then
       world:move(obj, obj.x, obj.y + 1)
     end
   end
+end
 
+local function disintegration()
   for obj in pairs(world.objects) do
     if world.energy.limit <= obj.energy then
       world:death(obj)
@@ -128,6 +134,14 @@ local function process()
       end
     end
   end
+end
+
+
+local function process()
+  action_creature(obj)
+  change_energy(obj)
+  drop()
+  disintegration()
 end
 
 return process

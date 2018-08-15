@@ -51,7 +51,7 @@ local world = {
     limit = 1500,
     degradation = 1,
   },
-  logic_values = 64,
+  logic_values = 128,
 }
 
 local directions = {
@@ -145,6 +145,40 @@ actions = {
       creature.memory.p=creature.memory.p+1
     end
   end,
+  [math.floor(world.logic_values * 7 / 8)] = function(obj) -- деление
+    if obj.energy>512 then
+      local free_cells = {}
+      for _, dir in ipairs(directions) do
+        if 1 <= obj.x + dir[1] and obj.x + dir[1] <= world.w
+        and 1 <= obj.y + dir[2] and obj.y + dir[2] <= world.h then
+          if world:empty(obj.x + dir[1], obj.y + dir[2]) then
+            table.insert(free_cells, {obj.x + dir[1], obj.y + dir[2]})
+          end
+        end
+      end
+      if 1 <= #free_cells then
+        local child1 = deep_copy(obj)
+        child1.energy = obj.energy / 64
+        obj.energy=obj.energy-obj.energy*63/64
+        local idx1 = math.random(#free_cells)
+        local pos1 = free_cells[idx1]
+        table.remove(free_cells, idx1)
+
+        child1.x = pos1[1]
+        child1.y = pos1[2]
+
+        child1.memory = obj.memory:copy()
+        for i = 1, child1.memory:size() do
+          if i == math.random(world.logic_values) then
+            child1.memory:set(i, math.random(world.logic_values))
+            break
+          end
+        end
+        world:insert(child1)
+      end
+    end
+    obj.memory.p=obj.memory.p+1
+  end,
   [math.floor(world.logic_values * 5 / 8)] = function(obj) -- отдать энергию
     local obj_give_energy = obj.energy/16
     local obj_l_u, obj_c_u, obj_r_u = world:find(obj.x-1,obj.y+1), world:find(obj.x, obj.y+1), world:find(obj.x+1, obj.y+1)
@@ -152,35 +186,35 @@ actions = {
     local obj_l_d, obj_c_d, obj_r_d = world:find(obj.x-1,obj.y-1), world:find(obj.x, obj.y-1), world:find(obj.x+1, obj.y-1)
     if obj_l_u then
       obj_l_u.energy = obj_l_u.energy+ obj_give_energy
-      obj.energy=obj.energy-math.floor(obj.energy*120/128)
+      obj.energy=obj.energy-math.floor(obj.energy*3/32)
     end
     if obj_c_u then
       obj_c_u.energy = obj_c_u.energy+ obj_give_energy
-      obj.energy=obj.energy-math.floor(obj.energy*120/128)
+      obj.energy=obj.energy-math.floor(obj.energy*3/32)
     end
     if obj_r_u then
       obj_r_u.energy = obj_r_u.energy+ obj_give_energy
-      obj.energy=obj.energy-math.floor(obj.energy*120/128)
+      obj.energy=obj.energy-math.floor(obj.energy*3/32)
     end
     if obj_l_c then
       obj_l_c.energy = obj_l_c.energy+ obj_give_energy
-      obj.energy=obj.energy-math.floor(obj.energy*120/128)
+      obj.energy=obj.energy-math.floor(obj.energy*3/32)
     end
     if obj_r_c then
       obj_r_c.energy = obj_r_c.energy+ obj_give_energy
-      obj.energy=obj.energy-math.floor(obj.energy*120/128)
+      obj.energy=obj.energy-math.floor(obj.energy*3/32)
     end
     if obj_r_d then
       obj_r_d.energy = obj_r_d.energy+ obj_give_energy
-      obj.energy=obj.energy-math.floor(obj.energy*120/128)
+      obj.energy=obj.energy-math.floor(obj.energy*3/32)
     end
     if obj_c_d then
       obj_c_d.energy = obj_c_d.energy+ obj_give_energy
-      obj.energy=obj.energy-math.floor(obj.energy*120/128)
+      obj.energy=obj.energy-math.floor(obj.energy*3/32)
     end
     if obj_l_d then
       obj_l_d.energy = obj_l_d.energy+ obj_give_energy
-      obj.energy=obj.energy-math.floor(obj.energy*120/128)
+      obj.energy=obj.energy-math.floor(obj.energy*3/32)
     end
     obj.memory.p=obj.memory.p+1
   end,
