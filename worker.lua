@@ -1,27 +1,13 @@
 local memory = require "memory"
+local actions = require "actions"
+local directions = require "directions"
 
-local wrld = require "world"
-local world = wrld.world
-local actions = wrld.actions
-local directions = wrld.directions
+local worker = {}
 
-function deep_copy(obj, tab)
-  tab = tab or ''
-  if type(obj) == 'table' then
-    local result = {}
-    for k,v in pairs(obj) do
-      result[k] = deep_copy(v, tab .. '\t')
-    end
-    return result
-  else
-    return obj
-  end
-end
-
-local function action_creature(obj)
+function worker:action_creature(world)
   for obj in pairs(world.objects) do
     obj.memory = setmetatable(obj.memory, {__index = memory})
-    local action = actions[gene(obj.memory, obj.memory.p)]
+    local action = actions[obj:gene(obj.memory.p)]
     if action then
       obj.memory.count = 0
       action(obj)
@@ -34,7 +20,7 @@ local function action_creature(obj)
   end
 end
 
-local function change_energy(obj)
+function worker:change_energy(world)
   for obj in pairs(world.objects)  do
     obj.energy = obj.energy - world.energy.degradation
     obj.energy = obj.energy + (1 - world.heat.depth_degradation) ^ (world.h - obj.y) * world.heat.power
@@ -44,7 +30,7 @@ local function change_energy(obj)
   end
 end
 
-local function drop()
+function worker:drop(world)
   for obj in pairs(world.objects)  do
     if world:empty(obj.x, obj.y + 1) and obj.y < world.h and math.random() < 0.1 then
       world:move(obj, obj.x, obj.y + 1)
@@ -52,7 +38,7 @@ local function drop()
   end
 end
 
-local function disintegration()
+function worker:disintegration(world)
   for obj in pairs(world.objects) do
     if world.energy.limit <= obj.energy then
       world:death(obj)
@@ -66,70 +52,32 @@ local function disintegration()
         end
       end
       if 2 <= #free_cells then
-        local child1 = deep_copy(obj)
-        local child2 = deep_copy(obj)
-        child1.energy = world.energy.limit / 3
-        child2.energy = world.energy.limit / 3
+        local mutation = function(child)
+          child.energy = world.energy.limit / 3
 
-        local idx1 = math.random(#free_cells)
-        local pos1 = free_cells[idx1]
-        table.remove(free_cells, idx1)
-        local idx2 = math.random(#free_cells)
-        local pos2 = free_cells[idx2]
-        table.remove(free_cells, idx2)
+          local idx = math.random(#free_cells)
+          local pos = free_cells[idx]
+          table.remove(free_cells, idx)
 
-        child1.x = pos1[1]
-        child1.y = pos1[2]
-        child2.x = pos2[1]
-        child2.y = pos2[2]
+          child.x, child.y = pos[1], pos[2]
 
-        child1.memory = obj.memory:copy()
-        child2.memory = obj.memory:copy()
-
-        for i = 1, child1.memory:size() do
-          if i == math.random(world.logic_values) then
-            child1.memory:set(i, math.random(world.logic_values))
-            break
+          for i = 1, child.memory:size() do
+            if i == math.random(world.logic_values) then
+              child.memory:set(i, math.random(world.logic_values))
+              break
+            end
           end
         end
 
-        for i = 1, child2.memory:size() do
-          if i == math.random(world.logic_values) then
-            child2.memory:set(i, math.random(world.logic_values))
-            break
-          end
-        end
-
-        world:insert(child1)
-        world:insert(child2)
+        world:insert(obj:clone(mutation))
+        world:insert(obj:clone(mutation))
       else
         local obj_give_energy = obj.energy/8
-        local obj_l_u, obj_c_u, obj_r_u = world:find(obj.x-1,obj.y+1), world:find(obj.x, obj.y+1), world:find(obj.x+1, obj.y+1)
-        local obj_l_c, obj_r_c = world:find(obj.x-1,obj.y), world:find(obj.x+1, obj.y)
-        local obj_l_d, obj_c_d, obj_r_d = world:find(obj.x-1,obj.y-1), world:find(obj.x, obj.y-1), world:find(obj.x+1, obj.y-1)
-        if obj_l_u then
-          obj_l_u.energy = obj_l_u.energy+ obj_give_energy
-        end
-        if obj_c_u then
-          obj_c_u.energy = obj_c_u.energy+ obj_give_energy
-        end
-        if obj_r_u then
-          obj_r_u.energy = obj_r_u.energy+ obj_give_energy
-        end
-        if obj_l_c then
-          obj_l_c.energy = obj_l_c.energy+ obj_give_energy
-        end
-        if obj_r_c then
-          obj_r_c.energy = obj_r_c.energy+ obj_give_energy
-        end
-        if obj_r_d then
-          obj_r_d.energy = obj_r_d.energy+ obj_give_energy
-        end
-        if obj_c_d then
-          obj_c_d.energy = obj_c_d.energy+ obj_give_energy
-        end
-        if obj_l_d then
-          obj_l_d.energy = obj_l_d.energy+ obj_give_energy
+        for _, dir in ipairs(directions) do
+          local tgt = world:find(obj.x + dir[1], obj.y + dir[2])
+          if tgt then
+            tgt.energy = tgt.energy + obj_give_energy
+          end
         end
       end
     end
@@ -137,11 +85,11 @@ local function disintegration()
 end
 
 
-local function process()
-  action_creature(obj)
-  change_energy(obj)
-  drop()
-  disintegration()
+function worker:process(world)
+  self:action_creature(world)
+  self:change_energy(world)
+  self:drop(world)
+  self:disintegration(world)
 end
 
-return process
+return worker

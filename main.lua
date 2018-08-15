@@ -1,43 +1,15 @@
 local memory = require "memory"
-local wrld = require "world"
-local world = wrld.world
-local actions = wrld.actions
-local directions = wrld.directions
+local world = require "world"
+local actions = require "actions"
+local directions = require "directions"
+local creature = require "creature"
+local worker = require "worker"
 
-local function mergesort(a, b, cmp)
-  local result = {}
-  local pa, pb = 1, 1
-  while pa <= #a and pb <= #b do
-    if cmp(a[pa], b[pb]) then
-      result[#result + 1] = a[pa]
-      pa = pa + 1
-    else
-      result[#result + 1] = b[pb]
-      pb = pb + 1
-    end
-  end
-
-  for i = pa, #a do
-    result[#result + 1] = a[i]
-  end
-
-  for i = pb, #b do
-    result[#result + 1] = b[i]
-  end
-
-  return result
-end
 for i = 1, world.w do
   table.insert(world.size,{})
 end
-for i = 1, 500 do
-  local obj = {
-
-    x = math.floor(i % world.w + 1),
-    y = math.random(world.h),
-    energy = world.energy.limit / 2,
-    memory = memory.new(world.logic_values),
-  }
+for i = 1, 150 do
+  local obj = creature.new()
   for j = 1, world.logic_values do
     obj.memory:set(j, math.random(world.logic_values))
   end
@@ -61,7 +33,7 @@ love.graphics.setFont( font )
 
 local function rendering_action_and_count(obj)
   love.graphics.setColor(0.5,0.5,0.5,0.5)
-  local color_gene = gene(obj.memory,obj.memory.p)
+  local color_gene = obj:gene(obj.memory.p)
   if color_gene == world.logic_values/8 then
     obj_melee=obj_melee+1
     love.graphics.setColor(1,0,0,1)
@@ -143,7 +115,7 @@ end
 
 function love.draw()
   timer=timer+1
-  require("worker")()
+  worker:process(world)
 
   love.graphics.setBackgroundColor(0, 0, 1, 1)
   obj_melee, obj_photosyntesis, obj_give_energy, obj_sensor, obj_swim, obj_check, obj_div = 0, 0, 0, 0, 0, 0, 0

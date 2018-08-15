@@ -10,19 +10,19 @@ function memory.new(size)
   return mem
 end
 
-function memory.size(self)
+function memory:size()
   return self.data:getSize()/4 - 1
 end
 
-function memory.get(self, idx)
+function memory:get(idx)
   return self.ptr[idx]
 end
 
-function memory.set(self, idx, val)
+function memory:set(idx, val)
   self.ptr[idx] = val
 end
 
-function memory.copy(self)
+function memory:copy()
   local mem = memory.new(self:size())
   ffi.copy(mem.ptr, self.ptr, self.data:getSize())
   return mem
