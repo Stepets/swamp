@@ -4,6 +4,8 @@ local actions = require "actions"
 local directions = require "directions"
 local creature = require "creature"
 local worker = require "worker"
+local bit = require "bit"
+local ffi = require "ffi"
 
 for i = 1, world.w do
   table.insert(world.size,{})
@@ -62,12 +64,43 @@ local function rendering_action_and_count(obj)
     obj_sensor = obj_sensor+1
     love.graphics.setColor(0.75,0.75,0.75,1)
   end
-  love.graphics.rectangle("fill", obj.x * 3, (obj.y+world.h+20) * 3, 3, 3)
+  love.graphics.rectangle("fill", obj.x * 3, (obj.y + world.h + 15) * 3, 3, 3)
 end
 
 local function rendering_energy(obj)
   love.graphics.setColor(1, obj.energy / world.energy.limit,0, 1)
-  love.graphics.rectangle("fill", obj.x * 3, obj.y * 3+ 20, 3, 3)
+  love.graphics.rectangle("fill", obj.x * 3, obj.y * 3 + 15, 3, 3)
+end
+
+local function rendering_type(obj)
+  local color = {r = 0, g = 0, b = 0}
+  for i = 1, obj.memory:size() do
+    local gene = obj:gene(i)
+    local r = gene / 64 % 4 / 4
+    local g = gene / 8 % 8 / 8
+    local b = gene % 8 / 8
+
+    if r < g then
+      if g < b then
+        color.b = color.b + b * i
+      else
+        color.g = color.g + g * i
+      end
+    else
+      if r < b then
+        color.b = color.b + b * i
+      else
+        color.r = color.r + r * i
+      end
+    end
+
+    -- color.r = color.r + r * i
+    -- color.g = color.g + g * i
+    -- color.b = color.b + b * i
+  end
+  local len = math.sqrt(color.r ^ 2 + color.g ^ 2 + color.b ^ 2)
+  love.graphics.setColor(color.r / len, color.g / len, color.b / len, 1)
+  love.graphics.rectangle("fill", obj.x * 3, obj.y * 3 + (world.h + 15) * 2 * 3, 3, 3)
 end
 
 local function change_world(timer)
@@ -117,12 +150,13 @@ function love.draw()
   timer=timer+1
   worker:process(world)
 
-  love.graphics.setBackgroundColor(0, 0, 1, 1)
+  love.graphics.setBackgroundColor(1, 1, 1, 1)
   obj_melee, obj_photosyntesis, obj_give_energy, obj_sensor, obj_swim, obj_check, obj_div = 0, 0, 0, 0, 0, 0, 0
   for obj in pairs(world.objects) do
     obj.memory = setmetatable(obj.memory, {__index = memory})
     rendering_energy(obj)
     rendering_action_and_count(obj)
+    rendering_type(obj)
   end
   change_world(timer)
   love.graphics.setColor(0,0,0,1)

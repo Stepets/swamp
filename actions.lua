@@ -2,16 +2,35 @@ local directions = require "directions"
 local world = require "world"
 
 local actions
+
+local function simple(offset, real_func)
+  return function(creature)
+    real_func(creature)
+    creature.memory.p = creature.memory.p + offset
+  end
+end
+
+local function logical(real_func)
+  return function(creature)
+    if 64 < creature.memory.count then
+      creature.memory.p = creature.memory.p + 1
+      return
+    end
+    real_func(creature)
+    creature.memory.count = creature.memory.count + 1
+    local action = actions[creature:gene(creature.memory.p)]
+    if action then action(creature) end
+  end
+end
+
 actions = {
-  [math.floor(world.logic_values / 2)] = function(creature) -- фотосинтезировать
-    creature.memory.p = creature.memory.p + 1
+  [math.floor(world.logic_values / 2)] = simple(1, function(creature) -- фотосинтезировать
     creature.energy = creature.energy +
       creature:photosyntesis() *
       (1 - world.sun.depth_degradation) ^ (creature.y - 1) * world.sun.power
-  end,
-  [math.floor(world.logic_values / 4)] = function(creature, idx) -- плыть в сторону
+  end),
+  [math.floor(world.logic_values / 4)] = simple(2, function(creature, idx) -- плыть в сторону
     local arg = creature:gene(creature.memory.p + 1)
-    creature.memory.p = creature.memory.p + 2
 
     local dir = directions[arg % 8 + 1]
 
@@ -26,13 +45,8 @@ actions = {
     if not world:empty(next.x, next.y) then return end
 
     world:move(creature, next.x, next.y)
-  end,
-  [math.floor(world.logic_values * 3 / 4)] = function(creature) -- проверить занятость клетки
-    if 64 < creature.memory.count then
-      creature.memory.p = creature.memory.p + 1
-      return
-    end
-
+  end),
+  [math.floor(world.logic_values * 3 / 4)] = logical(function(creature) -- проверить занятость клетки
     local arg = creature:gene(creature.memory.p + 1)
 
     local dir = directions[arg % 8 + 1]
@@ -42,20 +56,15 @@ actions = {
       y = creature.y + dir[2]
     }
 
-    creature.memory.count = creature.memory.count + 1
     local jump
     if world:empty(next.x, next.y) then
       jump = creature:gene(creature.memory.p + 2)
     else
       jump = creature:gene(creature.memory.p + 3)
     end
-    creature.memory.p = creature.memory.p + jump
-    local action = actions[creature:gene(creature.memory.p)]
-    if action then action(creature) end
-  end,
-  [math.floor(world.logic_values / 8)] = function(creature) -- атаковать в сторону
+  end),
+  [math.floor(world.logic_values / 8)] = simple(2, function(creature) -- атаковать в сторону
     local arg = creature:gene(creature.memory.p + 1)
-    creature.memory.p = creature.memory.p + 2
 
     local dir = directions[arg % 8 + 1]
 
@@ -70,12 +79,8 @@ actions = {
     local power = creature.energy * 0.1 * creature:melee()
     creature.energy = creature.energy + power / 4
     tgt.energy = tgt.energy - power
-  end,
-  [math.floor(world.logic_values * 3 / 8)] = function(creature) -- сенсор глубины
-    if 64 < creature.memory.count then
-      creature.memory.p = creature.memory.p + 1
-      return
-    end
+  end),
+  [math.floor(world.logic_values * 3 / 8)] = logical(function(creature) -- сенсор глубины
     local s =0
     for i=1, world.logic_values do
       s = s + creature:gene(i)
@@ -85,8 +90,18 @@ actions = {
     else
       creature.memory.p=creature.memory.p+1
     end
-  end,
-  [math.floor(world.logic_values * 7 / 8)] = function(obj) -- деление
+  end),
+  [math.floor(world.logic_values * 5 / 8)] = simple(1, function(obj) -- отдать энергию
+    local obj_give_energy = obj.energy/16
+    for _, dir in ipairs(directions) do
+      local tgt = world:find(obj.x + dir[1], obj.y + dir[2])
+      if tgt then
+        tgt.energy = tgt.energy + obj_give_energy
+        obj.energy = obj.energy - math.floor(obj.energy * 3/32)
+      end
+    end
+  end),
+  [math.floor(world.logic_values * 7 / 8)] = simple(1, function(obj) -- деление
     if obj.energy>512 then
       local free_cells = {}
       for _, dir in ipairs(directions) do
@@ -116,19 +131,7 @@ actions = {
         world:insert(obj:clone(mutation))
       end
     end
-    obj.memory.p=obj.memory.p+1
-  end,
-  [math.floor(world.logic_values * 5 / 8)] = function(obj) -- отдать энергию
-    local obj_give_energy = obj.energy/16
-    for _, dir in ipairs(directions) do
-      local tgt = world:find(obj.x + dir[1], obj.y + dir[2])
-      if tgt then
-        tgt.energy = tgt.energy + obj_give_energy
-        obj.energy = obj.energy - math.floor(obj.energy * 3/32)
-      end
-    end
-    obj.memory.p=obj.memory.p+1
-  end,
+  end),
 }
 
 return actions

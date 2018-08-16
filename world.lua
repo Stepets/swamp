@@ -25,15 +25,15 @@ local world = {
     self.object_count = self.object_count + 1
   end,
   sun = {
-    power = 150,
+    power = 15,
     depth_degradation = 0.2,
   },
   heat = {
-    power = 10,
+    power = 4,
     depth_degradation = 0.01,
   },
   energy = {
-    limit = 15000,
+    limit = 1500,
     degradation = 1,
   },
   logic_values = 128,
