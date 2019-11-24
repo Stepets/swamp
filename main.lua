@@ -145,14 +145,16 @@ end
 
 function love.load()
 	pause = false
+  wait = false
   action = {
-    [math.floor(world.logic_values / 2)] = function () love.graphics.print("I synthesize", 360 * 3, 30) end,
-    [math.floor(world.logic_values / 4)] = function () love.graphics.print("I'm swimming", 360 * 3, 30) end,
-    [math.floor(world.logic_values * 3 / 4)] = function () love.graphics.print("I'm checking", 360 * 3, 30) end,
-    [math.floor(world.logic_values / 8)] = function () love.graphics.print("I'm attacking", 360 * 3, 30) end,
+    [math.floor(world.logic_values / 2)] = function () love.graphics.print("I synthesize", 400 * 3, 30) end,
+    [math.floor(world.logic_values / 4)] = function () love.graphics.print("I'm swimming", 400 * 3, 30) end,
+    [math.floor(world.logic_values * 3 / 4)] = function () love.graphics.print("I'm checking", 400 * 3, 30) end,
+    [math.floor(world.logic_values / 8)] = function () love.graphics.print("I'm attacking", 400 * 3, 30) end,
     [math.floor(world.logic_values * 3 / 8)] = function () love.graphics.print("How deep am I?", 360 * 3, 30) end,
-    [math.floor(world.logic_values * 5 / 8)] = function () love.graphics.print("I share energy with others", 360 * 3, 30) end,
-    [math.floor(world.logic_values * 7 / 8)] = function () love.graphics.print("Doing budding", 360 * 3, 30) end,
+    [math.floor(world.logic_values * 5 / 8)] = function () love.graphics.print("I share energy with others", 400 * 3, 30) end,
+    [math.floor(world.logic_values * 7 / 8)] = function () love.graphics.print("Doing budding", 400 * 3, 30) end,
+    default = love.graphics.print("I'm chilling, don't touch me", 400 * 3, 30)
   }
   curr_x_pressed_creation, curr_y_pressed_creation = 0, 0
   exist_pressed_creation = false
@@ -161,11 +163,15 @@ end
 
 function love.update(dt)
   function love.keyreleased(key)
-     if key == 'p' then
-        pause = not pause
-     elseif key == 'P' then
-        pause = not pause
-     end
+    if key == 'p' then
+      pause = not pause
+    elseif key == 'P' then
+      pause = not pause
+    elseif key == 'w' then
+      wait = true
+    elseif key == 'W' then
+      wait = true
+    end
   end
 end
 
@@ -183,9 +189,9 @@ end
 
 function love.draw()
   if exist_pressed_creation then
-    local curr_obj_pressed = world:find(curr_x_pressed_creation, curr_y_pressed_creation)
-    local curr_action = curr_obj_pressed:gene(curr_obj_pressed.memory.p)
-    if curr_action then
+    local curr_obj = world:find(curr_x_pressed_creation, curr_y_pressed_creation)
+    local curr_action = curr_obj:gene(curr_obj.memory.p)
+    if not curr_action then
       love.graphics.print("This is error. Nil adress", 400 * 3, 30, 0, 0.5)
       pause = not pause
     else
@@ -199,6 +205,11 @@ function love.draw()
     return
   else
 	  love.graphics.print("Game is running", 1000, 800)
+  end
+  if wait then
+    love.graphics.print("Wait 3 seconds...", 1000, 800)
+    love.timer.sleep(3)
+    wait = false
   end
   timer = timer + 1
   worker:process(world)
