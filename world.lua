@@ -1,10 +1,10 @@
 local world = {
-  size={},
+  size = {},
   w = 250,
   h = 100,
   objects = {},
   object_count = 0,
-  move = function(self,creature, x, y)
+  move = function(self, creature, x, y)
     self.size[x][y], self.size[creature.x][creature.y] = creature, nil
     creature.x, creature.y= x, y
   end,
@@ -25,18 +25,18 @@ local world = {
     self.object_count = self.object_count + 1
   end,
   sun = {
-    power = 15,
+    power = 20,
     depth_degradation = 0.2,
   },
   heat = {
-    power = 4,
-    depth_degradation = 0.01,
+    power = 5,
+    depth_degradation = 0.05,
   },
   energy = {
     limit = 1500,
     degradation = 1,
   },
-  logic_values = 128,
+  logic_values = 64,
 }
 
 return world

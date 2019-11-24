@@ -23,7 +23,7 @@ end
 function worker:change_energy(world)
   for obj in pairs(world.objects)  do
     obj.energy = obj.energy - world.energy.degradation
-    obj.energy = obj.energy + (1 - world.heat.depth_degradation) ^ (world.h - obj.y) * world.heat.power
+    obj.energy = obj.energy + (1 - world.heat.depth_degradation) ^ ((math.floor(world.h / 5) - math.floor(obj.y / 5)) * 5) * world.heat.power
     if obj.energy <= 0 then
       world:death(obj)
     end
@@ -90,6 +90,12 @@ function worker:process(world)
   self:change_energy(world)
   self:drop(world)
   self:disintegration(world)
+  function love.keypressed(key)
+    if key == "p" then
+      print('keeeek')
+      local line = io.read()
+    end
+  end
 end
 
 return worker
