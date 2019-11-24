@@ -30,7 +30,7 @@ local world = {
   },
   heat = {
     power = 5,
-    depth_degradation = 0.05,
+    depth_degradation = 0.1,
   },
   energy = {
     limit = 1500,

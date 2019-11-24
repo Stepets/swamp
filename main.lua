@@ -153,9 +153,9 @@ end
 
 function love.update(dt)
   function love.keyreleased(key)
-    if key == 'p' or 'P' then
+    if key == 'p' or key == 'P' then
       pause = not pause
-    elseif key == 'w' or 'W' then
+    elseif key == 'w' or key == 'W' then
       wait = 1
     end
   end
