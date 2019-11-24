@@ -145,17 +145,7 @@ end
 
 function love.load()
 	pause = false
-  wait = false
-  action = {
-    [math.floor(world.logic_values / 2)] = function () love.graphics.print("I synthesize", 400 * 3, 30) end,
-    [math.floor(world.logic_values / 4)] = function () love.graphics.print("I'm swimming", 400 * 3, 30) end,
-    [math.floor(world.logic_values * 3 / 4)] = function () love.graphics.print("I'm checking", 400 * 3, 30) end,
-    [math.floor(world.logic_values / 8)] = function () love.graphics.print("I'm attacking", 400 * 3, 30) end,
-    [math.floor(world.logic_values * 3 / 8)] = function () love.graphics.print("How deep am I?", 360 * 3, 30) end,
-    [math.floor(world.logic_values * 5 / 8)] = function () love.graphics.print("I share energy with others", 400 * 3, 30) end,
-    [math.floor(world.logic_values * 7 / 8)] = function () love.graphics.print("Doing budding", 400 * 3, 30) end,
-    default = love.graphics.print("I'm chilling, don't touch me", 400 * 3, 30)
-  }
+  wait = 0
   curr_x_pressed_creation, curr_y_pressed_creation = 0, 0
   exist_pressed_creation = false
 end
@@ -163,14 +153,10 @@ end
 
 function love.update(dt)
   function love.keyreleased(key)
-    if key == 'p' then
+    if key == 'p' or 'P' then
       pause = not pause
-    elseif key == 'P' then
-      pause = not pause
-    elseif key == 'w' then
-      wait = true
-    elseif key == 'W' then
-      wait = true
+    elseif key == 'w' or 'W' then
+      wait = 1
     end
   end
 end
@@ -178,8 +164,8 @@ end
 function love.mousepressed(x, y, button, istouch)
     exist_pressed_creation = false
    if button == 1 then
-     curr_x_pressed_creation = math.floor(x / 3)
-     curr_y_pressed_creation = math.floor(y / 3)
+     curr_x_pressed_creation = math.floor(x / 3) - 5
+     curr_y_pressed_creation = math.floor(y / 3) - 5
       if (not world:empty(curr_x_pressed_creation, curr_y_pressed_creation)) then
         exist_pressed_creation = true
       end
@@ -191,28 +177,42 @@ function love.draw()
   if exist_pressed_creation then
     local curr_obj = world:find(curr_x_pressed_creation, curr_y_pressed_creation)
     local curr_action = curr_obj:gene(curr_obj.memory.p)
-    if not curr_action then
-      love.graphics.print("This is error. Nil adress", 400 * 3, 30, 0, 0.5)
-      pause = not pause
+    if curr_action == math.floor(world.logic_values / 2) then
+      love.graphics.print("I synthesize", 400 * 3, 20)
+    elseif curr_action == math.floor(world.logic_values / 4) then
+      love.graphics.print("I'm swimming", 400 * 3, 20)
+    elseif curr_action == math.floor(world.logic_values * 3 / 4) then
+      love.graphics.print("I'm checking", 400 * 3, 20)
+    elseif curr_action == math.floor(world.logic_values / 8) then
+      love.graphics.print("I'm attacking", 400 * 3, 20)
+    elseif curr_action == math.floor(world.logic_values * 3 / 8) then
+      love.graphics.print("How deep am I?", 400 * 3, 20)
+    elseif curr_action == math.floor(world.logic_values  * 5 / 8) then
+      love.graphics.print("I share energy with others", 400 * 3, 20)
+    elseif curr_action == math.floor(world.logic_values * 7 / 8) then
+      love.graphics.print("Doing budding", 400 * 3, 20)
     else
-      action[curr_action]()
+      love.graphics.print("I'm chilling, don't touch me", 400 * 3, 20)
     end
-    love.timer.sleep(4)
+    exist_pressed_creation = false
+    --[[
+    action = {
+      [math.floor(world.logic_values / 2)] = function () love.graphics.print("I synthesize", 400 * 3, 20) end,
+      [math.floor(world.logic_values / 4)] = function () love.graphics.print("I'm swimming", 400 * 3, 20) end,
+      [math.floor(world.logic_values * 3 / 4)] = function () love.graphics.print("I'm checking", 400 * 3, 20) end,
+      [math.floor(world.logic_values / 8)] = function () love.graphics.print("I'm attacking", 400 * 3, 20) end,
+      [math.floor(world.logic_values * 3 / 8)] = function () love.graphics.print("How deep am I?", 400 * 3, 20) end,
+      [math.floor(world.logic_values * 5 / 8)] = function () love.graphics.print("I share energy with others", 400 * 3, 20) end,
+      [math.floor(world.logic_values * 7 / 8)] = function () love.graphics.print("Doing budding", 400 * 3, 20) end,
+    }
+
+    local f = action[curr_action]
+    if not f then
+      love.graphics.print("I'm chilling, don't touch me", 400 * 3, 20)
+    end
+    ]]
+    wait = 2
   end
-  if pause then
-    love.graphics.print("Game is paused", 1000, 800)
-    love.timer.sleep(2)
-    return
-  else
-	  love.graphics.print("Game is running", 1000, 800)
-  end
-  if wait then
-    love.graphics.print("Wait 3 seconds...", 1000, 800)
-    love.timer.sleep(3)
-    wait = false
-  end
-  timer = timer + 1
-  worker:process(world)
 
   love.graphics.setBackgroundColor(1, 1, 1, 1)
   obj_melee, obj_photosyntesis, obj_give_energy, obj_sensor, obj_swim, obj_check, obj_div = 0, 0, 0, 0, 0, 0, 0
@@ -241,4 +241,21 @@ function love.draw()
   love.graphics.print(world.sun.depth_degradation, 420 * 3, 160 * 3)
   love.graphics.print('Year: '..timer, 270 * 3, 200 * 3)
   love.graphics.print("fps: " .. tostring(love.timer.getFPS()) .. " count: " .. tostring(world.object_count), 0, 0, 0, 0.3, 0.3)
+  if pause then
+    love.graphics.print("Game is paused", 1000, 800)
+    love.timer.sleep(2)
+  elseif wait == 0 then
+	  love.graphics.print("Game is running", 1000, 800)
+    timer = timer + 1
+    worker:process(world)
+  end
+  if wait > 0 then
+    love.graphics.print("Wait 4 seconds...", 1000, 800)
+    if wait == 2 then
+      love.timer.sleep(1)
+    else
+      love.timer.sleep(3)
+    end
+    wait = wait - 1
+  end
 end
